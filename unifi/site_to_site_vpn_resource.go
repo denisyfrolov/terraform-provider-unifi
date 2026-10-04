@@ -969,8 +969,15 @@ func tunnelIPEnabled(flag types.Bool, tunnelIP types.String) bool {
 // can be turned on manually, but it cannot be turned off while dynamic routing
 // is on with no static remote_subnets, since the tunnel then relies entirely on
 // learned routes.
-func remoteVPNDynamicSubnetsEnabled(flag types.Bool, dynamicRouting types.Bool, remoteSubnets types.List) bool {
-	opts := basetypes.CollectionLengthOptions{UnhandledNullAsZero: true, UnhandledUnknownAsZero: true}
+func remoteVPNDynamicSubnetsEnabled(
+	flag types.Bool,
+	dynamicRouting types.Bool,
+	remoteSubnets types.List,
+) bool {
+	opts := basetypes.CollectionLengthOptions{
+		UnhandledNullAsZero:    true,
+		UnhandledUnknownAsZero: true,
+	}
 	if dynamicRouting.ValueBool() && remoteSubnets.Length(opts) == 0 {
 		return true
 	}
@@ -1250,6 +1257,7 @@ type dynamicSubnetsPlanModifier struct{}
 func (m dynamicSubnetsPlanModifier) Description(_ context.Context) string {
 	return "Forces the value on when dynamic_routing is enabled with an empty remote_subnets; otherwise uses the configured value."
 }
+
 func (m dynamicSubnetsPlanModifier) MarkdownDescription(ctx context.Context) string {
 	return m.Description(ctx)
 }
@@ -1261,8 +1269,10 @@ func (m dynamicSubnetsPlanModifier) PlanModifyBool(
 ) {
 	var dynamicRouting types.Bool
 	var remoteSubnets types.List
-	resp.Diagnostics.Append(req.Plan.GetAttribute(ctx, path.Root("dynamic_routing"), &dynamicRouting)...)
-	resp.Diagnostics.Append(req.Plan.GetAttribute(ctx, path.Root("remote_subnets"), &remoteSubnets)...)
+	resp.Diagnostics.Append(
+		req.Plan.GetAttribute(ctx, path.Root("dynamic_routing"), &dynamicRouting)...)
+	resp.Diagnostics.Append(
+		req.Plan.GetAttribute(ctx, path.Root("remote_subnets"), &remoteSubnets)...)
 	if resp.Diagnostics.HasError() || dynamicRouting.IsUnknown() || remoteSubnets.IsUnknown() {
 		return // leave as unknown; can't resolve yet
 	}
