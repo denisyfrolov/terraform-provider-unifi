@@ -21,6 +21,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/booldefault"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/boolplanmodifier"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/int64default"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/int64planmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringdefault"
@@ -89,6 +90,7 @@ type siteToSiteVPNResourceModel struct {
 	PreSharedKeyWO                 types.String         `tfsdk:"pre_shared_key_wo"`
 	RemoteSubnets                  types.List           `tfsdk:"remote_subnets"`
 	Profile                        types.String         `tfsdk:"profile"`
+	DHGroup                        types.Int64          `tfsdk:"dh_group"`
 	IKEEncryption                  types.String         `tfsdk:"ike_encryption"`
 	IKEHash                        types.String         `tfsdk:"ike_hash"`
 	IKEDhGroup                     types.Int64          `tfsdk:"ike_dh_group"`
@@ -344,6 +346,14 @@ func (r *siteToSiteVPNResource) Schema(
 					stringvalidator.OneOf("customized", "azure_dynamic", "azure_static"),
 				},
 				PlanModifiers: []planmodifier.String{stringplanmodifier.UseStateForUnknown()},
+			},
+			"dh_group": schema.Int64Attribute{
+				MarkdownDescription: "The IPsec Diffie-Hellman group, sent as the controller's " +
+					"`ipsec_dh_group` field. It is separate from the phase-specific " +
+					"`ike_dh_group` and `esp_dh_group`. Defaults to `14`.",
+				Optional: true,
+				Computed: true,
+				Default:  int64default.StaticInt64(14),
 			},
 			"ike_encryption": schema.StringAttribute{
 				MarkdownDescription: "IKE (phase 1) encryption. Only used when `profile = customized`.",
@@ -1015,6 +1025,7 @@ func (r *siteToSiteVPNResource) modelToNetwork(
 		),
 		IPSecKeyExchange:    optStr(model.KeyExchange),
 		IPSecProfile:        optStr(model.Profile),
+		IPSecDhGroup:        optInt64(model.DHGroup),
 		IPSecIkeEncryption:  optStr(model.IKEEncryption),
 		IPSecIkeHash:        optStr(model.IKEHash),
 		IPSecIkeDhGroup:     optInt64(model.IKEDhGroup),
@@ -1077,6 +1088,7 @@ func (r *siteToSiteVPNResource) networkToModel(
 	model.TunnelIPEnabled = types.BoolValue(network.IPSecTunnelIPEnabled)
 	model.KeyExchange = stringPtrOrNull(network.IPSecKeyExchange)
 	model.Profile = stringPtrOrNull(network.IPSecProfile)
+	model.DHGroup = types.Int64PointerValue(network.IPSecDhGroup)
 	model.IKEEncryption = stringPtrOrNull(network.IPSecIkeEncryption)
 	model.IKEHash = stringPtrOrNull(network.IPSecIkeHash)
 	model.IKEDhGroup = types.Int64PointerValue(network.IPSecIkeDhGroup)
